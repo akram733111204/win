@@ -1,0 +1,8 @@
+{
+  "name": "rukn-ai-gateway",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "engines": {"node": ">=20"},
+  "scripts": {"start": "node voice-server.mjs", "check": "node --check voice-server.mjs"}
+}
