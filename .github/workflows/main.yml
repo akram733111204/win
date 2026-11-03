@@ -1,0 +1,64 @@
+
+name: Rukn Expiry Android CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
+          accept-android-sdk-licenses: true
+
+      - name: Install Android SDK 35
+        run: |
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Validate optional AI gateway
+        run: node --check server/voice-server.mjs
+
+      - name: Run Kotlin tests
+        run: gradle --no-daemon :core:test --stacktrace
+
+      - name: Build Android APK
+        env:
+          RUKN_AI_BASE_URL: ${{ vars.RUKN_AI_BASE_URL }}
+        run: |
+          if [ -n "$RUKN_AI_BASE_URL" ]; then
+            gradle --no-daemon :app:assembleDebug -PRUKN_AI_BASE_URL="$RUKN_AI_BASE_URL"
+          else
+            gradle --no-daemon :app:assembleDebug
+          fi
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: RuknExpiry-debug-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
